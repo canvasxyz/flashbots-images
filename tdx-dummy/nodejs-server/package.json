@@ -1,0 +1,15 @@
+{
+  "name": "tdx-metadata-server",
+  "version": "1.0.0",
+  "description": "Node.js server with cloud metadata client for TDX",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": ["tdx", "metadata", "gcp", "azure"],
+  "author": "Flashbots",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
