@@ -1,5 +1,5 @@
 [Unit]
-Description=Dummy TDX DCAP server
+Description=Dummy TDX DCAP Node.js server
 After=network-setup.service
 Wants=network-setup.service
 
@@ -7,7 +7,10 @@ Wants=network-setup.service
 Type=exec
 User=root
 Group=root
-ExecStart=/usr/bin/dummy-tdx-dcap --listen-addr 0.0.0.0:80
+Environment="HOST=0.0.0.0"
+Environment="PORT=80"
+WorkingDirectory=/usr/lib/dummy-tdx-dcap
+ExecStart=/usr/bin/node /usr/lib/dummy-tdx-dcap/server.js
 Restart=on-failure
 RestartSec=10
 StandardOutput=journal

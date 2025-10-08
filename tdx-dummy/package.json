@@ -1,0 +1,21 @@
+{
+  "name": "dummy-tdx-dcap",
+  "version": "1.0.0",
+  "description": "Dummy TDX DCAP server for testing",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "tdx",
+    "dcap",
+    "attestation",
+    "dummy"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
