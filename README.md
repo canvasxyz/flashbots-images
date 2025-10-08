@@ -34,16 +34,13 @@ Install lima:
 brew install lima
 ```
 
-Now build in the container:
+After dependencies are installed, you can start a build using
+`env_wrapper.sh`, optionally using the Azure, GCP, or devtools profile.
 
 ```
-make build IMAGE=tdx-dummy
-```
-
-To build with development tools:
-
-```
-make build-dev IMAGE=tdx-dummy
+scripts/check_perms.sh
+scripts/setup_deps.sh
+scripts/env_wrapper.sh mkosi --force --profile=gcp -I tdx-dummy.conf
 ```
 
 ## Adding Files to Modules
