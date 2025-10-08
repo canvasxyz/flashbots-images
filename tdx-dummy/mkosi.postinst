@@ -6,3 +6,19 @@ SERVICE_DIR="$BUILDROOT/etc/systemd/system"
 mkdir -p "$SERVICE_DIR"
 
 install -m 644 "tdx-dummy/dummy-tdx-dcap.service" "$SERVICE_DIR/"
+install -m 644 "tdx-dummy/nodejs-metadata-server.service" "$SERVICE_DIR/"
+
+# Install Node.js server application
+NODEJS_APP_DIR="$BUILDROOT/opt/nodejs-server"
+mkdir -p "$NODEJS_APP_DIR"
+
+# Copy Node.js application files
+cp -r tdx-dummy/nodejs-server/* "$NODEJS_APP_DIR/"
+
+# Install npm dependencies with deterministic builds (using package-lock.json)
+cd "$NODEJS_APP_DIR"
+npm ci --omit=dev --production
+
+# Enable the Node.js metadata server service
+mkdir -p "$BUILDROOT/etc/systemd/system/minimal.target.wants"
+ln -sf "/etc/systemd/system/nodejs-metadata-server.service" "$BUILDROOT/etc/systemd/system/minimal.target.wants/nodejs-metadata-server.service"
