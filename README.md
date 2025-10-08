@@ -1,124 +1,108 @@
 # Flashbots Images 📦⚡📦
 
-**Reproducible hardened Linux images for confidential computing and safe MEV**
+Reproducible hardened Linux images based on `flashbots-images`.
 
-This repository provides a toolkit for building minimal, hardened Linux images designed for confidential computing environments and MEV (Maximum Extractable Value) applications. Built on mkosi and Nix, it provides reproducible, security-focused Linux distributions with strong network isolation, attestation capabilities, and blockchain infrastructure support.
+## Requirements
 
-It contains our [bottom-of-block searcher sandbox](https://collective.flashbots.net/t/searching-in-tdx/3902) infrastructure and will soon contain our [BuilderNet](https://buildernet.org/blog/introducing-buildernet) infrastructure as well, along with any future TDX projects we implement.
+A cloud VM running systemd v250 or greater, e.g. Ubuntu 24.04,
+supporting nested virtualization (/dev/kvm).
 
-For more information about this repository, see [the Flashbots collective post](https://collective.flashbots.net/t/beyond-yocto-exploring-mkosi-for-tdx-images/4739).
+## Quick Start
 
-## 🌟 Features
+Install make, qemu-utils, and nix:
 
-- **Reproducible Builds**: Deterministic image generation using Nix and frozen Debian snapshots
-- **Confidential Computing**: Built-in support for Intel TDX and remote attestation
-- **Minimal Attack Surface**: Uses very few packages (20Mb base)
-- **Flexible Deployment**: Support for Bare Metal TDX, QEMU, Azure, and GCP
+```
+sudo apt update
+sudo apt install -y make qemu-utils qemu-system-x86
+NONINTERACTIVE=1 ./scripts/setup_deps.sh
+. ~/.nix-profile/etc/profile.d/nix.sh
+```
 
-## 🚀 Quick Start
+Install homebrew:
 
-### Prerequisites
+```
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-0. Make sure you're running systemd v250 or greater. Alternatively, you can utilize experimental [container support](DEVELOPMENT.md#building-with-podman-not-recommended).
+echo >> ~/.bashrc
+echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> ~/.bashrc
+eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+```
 
-1. **Install Nix** (single user mode is sufficient):
-   ```bash
-   sh <(curl -L https://nixos.org/nix/install) --no-daemon
-   ```
+Install lima:
 
-2. **Enable Nix experimental features** in `~/.config/nix/nix.conf`:
-   ```
-   experimental-features = nix-command flakes
-   ```
+```
+brew install lima
+```
 
-3. **Install Debian archive keyring** (temporary requirement):
-   ```bash
-   # On Ubuntu/Debian
-   sudo apt install debian-archive-keyring
-   # On other systems, download via package manager or use Docker approach below
-   ```
+Now build in the container:
 
-### Building Images
+```
+make build IMAGE=tdx-dummy
+```
 
-**Using Make (Recommended)**:
+To build with development tools:
+
+```
+make build-dev IMAGE=tdx-dummy
+```
+
+## Adding Files to Modules
+
+There are two main ways to add custom files to your
+module. **mkosi.extra is preferred** because files are placed after
+package installation and can override default package files. To add
+overlay files before packages are installed, use `SkeletonTrees` and
+`mkosi.skeleton` instead of `ExtraTrees` and `mkosi.extra`
+
+To add files:
+
 ```bash
-# Build the BOB (searcher sandbox) image
-make build IMAGE=bob
+mkdir -p mymodule/mkosi.extra/etc/systemd/system/
+mkdir -p mymodule/mkosi.extra/usr/bin/
+mkdir -p mymodule/mkosi.extra/home/myuser/
 
-# Build the Buildernet image  
-make build IMAGE=buildernet
+# Add a custom systemd service
+cat > mymodule/mkosi.extra/etc/systemd/system/myservice.service << 'EOF'
+[Unit]
+Description=My Custom Service
+After=network.target
 
-# Build with development tools
-make build-dev IMAGE=bob
+[Service]
+Type=simple
+ExecStart=/usr/bin/myapp
+Restart=always
+
+[Install]
+WantedBy=minimal.target
+EOF
+
+# Add a custom script
+cp myscript mymodule/mkosi.extra/usr/bin/
+chmod +x mymodule/mkosi.extra/usr/bin/myscript
+
+# Add configuration files
+echo "config_value=123" > mymodule/mkosi.extra/etc/myapp.conf
+```
+
+### File Permissions and Ownership
+
+Files copied via mkosi.extra inherit permissions from the source. To
+set specific permissions or ownership, use the post-installation
+script:
+
+**`mymodule/mkosi.postinst`**:
+```bash
+#!/bin/bash
+set -euxo pipefail
+
+# Set file permissions
+chmod 600 "$BUILDROOT/etc/myapp.conf"
+chmod +x "$BUILDROOT/usr/bin/myapp"
+
+# Set ownership (must use mkosi-chroot for user/group operations)
+mkosi-chroot chown root:root /home/myuser/config
+```
 
 # View all available targets
 make help
 ```
-
-**Manual Build**:
-```bash
-# Enter the development environment
-nix develop -c $SHELL
-
-# Build a specific image
-mkosi --force -I bob.conf
-mkosi --force -I buildernet.conf
-
-# Build with profiles
-mkosi --force -I bob.conf --profile=devtools
-mkosi --force -I bob.conf --profile=azure
-mkosi --force -I bob.conf --profile=azure,devtools
-```
-
-### Measuring TDX Boot Process
-
-**Export TDX measurements** for the built image:
-```bash
-make measure
-```
-
-This generates measurement files in the `build/` directory for attestation and verification.
-
-### Running Images
-
-**Create persistent storage** (for stateful applications):
-   ```bash
-   qemu-img create -f qcow2 persistent.qcow2 2048G
-   ```
-
-**Run QEMU**:
-  ```bash
-  sudo qemu-system-x86_64 \
-    -enable-kvm \
-    -machine type=q35,smm=on \
-    -m 16384M \
-    -nographic \
-    -drive if=pflash,format=raw,readonly=on,file=/usr/share/edk2/x64/OVMF_CODE.secboot.4m.fd \
-    -drive file=/usr/share/edk2/x64/OVMF_VARS.4m.fd,if=pflash,format=raw \
-    -kernel build/tdx-debian.efi \
-    -netdev user,id=net0,hostfwd=tcp::2222-:22,hostfwd=tcp::8080-:8080 \
-    -device virtio-net-pci,netdev=net0 \
-    -device virtio-scsi-pci,id=scsi0 \
-    -drive file=persistent.qcow2,format=qcow2,if=none,id=disk0 \
-    -device scsi-hd,drive=disk0,bus=scsi0.0,channel=0,scsi-id=0,lun=10
-  ```
-
-**With TDX confidential computing** (requires TDX-enabled hardware/hypervisor):
-  ```bash
-  sudo qemu-system-x86_64 \
-    -accel kvm \
-    -machine type=q35,kernel_irqchip=split,confidential-guest-support=tdx0 \
-    -object tdx-guest,id=tdx0 \
-    -cpu host,-kvm-steal-time,-kvmclock \
-    -m 16384M \
-    -nographic \
-    -kernel build/tdx-debian.efi \
-    # ... rest of options same as above
-  ```
-
-> Depending on your Linux distro, these commands may require changing the supplied OVMF paths or installing your distro's OVMF package.
-
-## 📖 Documentation
-
-- [Development Guide](DEVELOPMENT.md) - Comprehensive guide for creating new modules and extending existing ones
-- [BOB Module Guide](bob/readme.md) - Detailed documentation for the MEV searcher environment
