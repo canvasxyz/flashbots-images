@@ -1,6 +1,11 @@
 #!/bin/bash
 set -euxo pipefail
 
-source scripts/make_git_package.sh
+# Install Node.js server files
+mkdir -p "$DESTDIR/usr/lib/dummy-tdx-dcap"
+install -m 755 tdx-dummy/server.js "$DESTDIR/usr/lib/dummy-tdx-dcap/server.js"
+install -m 644 tdx-dummy/package.json "$DESTDIR/usr/lib/dummy-tdx-dcap/package.json"
 
-make_git_package "dummy-tdx-dcap" "v0.0.1" "https://github.com/Ruteri/dummy-tdx-dcap" 'go build -trimpath -ldflags "-s -w -buildid= -X github.com/flashbots/go-template/common.Version=v0.0.1" -v -o ./build/httpserver cmd/httpserver/main.go' "build/httpserver:/usr/bin/dummy-tdx-dcap"
+# Create symlink for easy execution
+mkdir -p "$DESTDIR/usr/bin"
+ln -sf /usr/lib/dummy-tdx-dcap/server.js "$DESTDIR/usr/bin/dummy-tdx-dcap"
