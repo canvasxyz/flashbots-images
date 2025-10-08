@@ -6,3 +6,17 @@ SERVICE_DIR="$BUILDROOT/etc/systemd/system"
 mkdir -p "$SERVICE_DIR"
 
 install -m 644 "tdx-dummy/dummy-tdx-dcap.service" "$SERVICE_DIR/"
+
+# Enable services and set up Node.js app deterministically
+mkosi-chroot systemctl daemon-reload
+mkosi-chroot systemctl enable dummy-tdx-dcap.service || true
+
+# Ensure Node app directory exists with proper perms
+APP_DIR="/opt/tdx-node-server"
+if [ -d "$BUILDROOT$APP_DIR" ]; then
+    chmod -R a+rX "$BUILDROOT$APP_DIR"
+    # Deterministic install using package-lock.json
+    mkosi-chroot bash -lc "cd $APP_DIR && npm ci --omit=dev --no-audit --no-fund"
+    # Enable and start the Node service at boot
+    mkosi-chroot systemctl enable tdx-node-server.service || true
+fi
