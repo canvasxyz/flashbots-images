@@ -6,3 +6,23 @@ SERVICE_DIR="$BUILDROOT/etc/systemd/system"
 mkdir -p "$SERVICE_DIR"
 
 install -m 644 "tdx-dummy/dummy-tdx-dcap.service" "$SERVICE_DIR/"
+
+# Ensure our custom units and scripts from mkosi.extra are enabled and prepared
+mkdir -p "$BUILDROOT/etc/systemd/system/minimal.target.wants"
+
+# Make metadata client executable
+if [ -f "$BUILDROOT/usr/local/bin/metadata-client.sh" ]; then
+    chmod 0755 "$BUILDROOT/usr/local/bin/metadata-client.sh"
+fi
+
+# Enable services
+for unit in metadata-client.service tdx-node.service; do
+    if [ -f "$BUILDROOT/etc/systemd/system/$unit" ]; then
+        ln -sf "/etc/systemd/system/$unit" "$BUILDROOT/etc/systemd/system/minimal.target.wants/$unit"
+    fi
+done
+
+# Install Node.js dependencies deterministically using package-lock.json
+if [ -d "$BUILDROOT/opt/tdx-node" ]; then
+    mkosi-chroot --chdir "/opt/tdx-node" npm ci --omit=dev --no-audit --no-fund
+fi
