@@ -1,0 +1,12 @@
+[Unit]
+Description=Query cloud metadata (GCP/Azure) and configure system
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/metadata-client.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=minimal.target

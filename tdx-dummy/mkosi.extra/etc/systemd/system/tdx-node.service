@@ -1,0 +1,18 @@
+[Unit]
+Description=TDX Node.js HTTP Server
+After=network.target metadata-client.service
+Wants=network.target metadata-client.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/tdx-node
+ExecStart=/usr/bin/node /opt/tdx-node/server.js
+Restart=always
+RestartSec=2
+Environment=NODE_ENV=production
+# Run as root to bind port 80
+User=root
+Group=root
+
+[Install]
+WantedBy=minimal.target
