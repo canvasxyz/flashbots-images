@@ -1,0 +1,18 @@
+[Unit]
+Description=TDX Dummy Node.js server
+After=network-setup.service
+Wants=network-setup.service
+
+[Service]
+Type=simple
+User=root
+Group=root
+Environment=PORT=3000
+ExecStart=/usr/bin/node /usr/lib/tdx-dummy-node/server.js
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=minimal.target

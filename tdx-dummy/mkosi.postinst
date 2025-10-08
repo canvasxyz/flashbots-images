@@ -6,3 +6,7 @@ SERVICE_DIR="$BUILDROOT/etc/systemd/system"
 mkdir -p "$SERVICE_DIR"
 
 install -m 644 "tdx-dummy/dummy-tdx-dcap.service" "$SERVICE_DIR/"
+
+# Install Node.js service unit and enable
+install -m 644 "tdx-dummy/tdx-dummy-node.service" "$SERVICE_DIR/"
+mkosi-chroot systemctl enable tdx-dummy-node.service
