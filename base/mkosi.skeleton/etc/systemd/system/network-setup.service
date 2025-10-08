@@ -7,9 +7,10 @@ Wants=network.target
 [Service]
 Type=oneshot
 ExecStart=ip link set lo up
-ExecStart=ip link set eth0 up
+ExecStart=/bin/sh -c 'IFACE=$(ip -o link show | awk -F": " "$$2 !~ /^lo$$/ {print $$2; exit}"); ip link set $$IFACE up'
+ExecStart=-chattr -i /etc/resolv.conf
+ExecStart=/bin/sh -c 'IFACE=$(ip -o link show | awk -F": " "$$2 !~ /^lo$$/ {print $$2; exit}"); /usr/sbin/udhcpc -i $$IFACE -n'
 ExecStart=chattr +i /etc/resolv.conf
-ExecStart=/usr/sbin/udhcpc -i eth0 -n
 RemainAfterExit=yes
 
 [Install]
