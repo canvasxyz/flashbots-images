@@ -1,0 +1,19 @@
+[Unit]
+Description=TDX Node.js metadata-driven HTTP server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/opt/tdx-node-server
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node /opt/tdx-node-server/index.js
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=minimal.target
